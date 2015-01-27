@@ -20,7 +20,7 @@ float deg = 10;
 void setup(){
   //Set window size
   size(640, 480);
-  //cp5 = new ControlP5(this);
+  cp5 = new ControlP5(this);
   //Initialise context
   context = new SimpleOpenNI(this);
   //Get data from Kinect debth sensor
