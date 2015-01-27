@@ -17,7 +17,7 @@ PImage img;
 Kinect kinect;
 
 PImage background;
-
+PImage ball;
 //Start camera at 10 degrees
 float deg = 10;
 
@@ -27,6 +27,7 @@ void setup(){
   
   //Load background image
   background = loadImage("data/background.jpg");
+  ball = loadImage("data/ball.png");
   
   cp5 = new ControlP5(this);
   
@@ -105,7 +106,7 @@ void draw(){
   img.updatePixels();
  
   //Draw the Kinect input to the centre of the window
-  image(img,180,0);
+  image(img,0,0);
  
   //draw significant points of users
  
@@ -155,8 +156,11 @@ void draw(){
       context.getJointPositionSkeleton(uid,SimpleOpenNI.SKEL_RIGHT_HAND,realRHand);
       PVector projRHand=new PVector();
       context.convertRealWorldToProjective(realRHand, projRHand);
-      fill(255,255,0);
-      ellipse(projRHand.x,projRHand.y,10,10);
+      //fill(255,255,0);
+      //ellipse(projRHand.x,projRHand.y,10,10);
+      
+      //Draw to hand location
+      image(ball, projRHand.x-25, projRHand.y-25);
     }
   }
 }
