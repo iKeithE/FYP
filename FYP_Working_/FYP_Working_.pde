@@ -16,12 +16,17 @@ SimpleOpenNI  context;
 PImage img;
 Kinect kinect;
 
+PImage background;
+
 //Start camera at 10 degrees
 float deg = 10;
 
 void setup(){
   //Set window size
   size(1000, 800);
+  
+  //Load background image
+  background = loadImage("data/background.jpg");
   
   cp5 = new ControlP5(this);
   
@@ -40,7 +45,21 @@ void setup(){
      .setValue(0)
      .setPosition(0,665)
      .setSize(200, 50);
-  
+     
+  cp5.addButton("Torso")
+     .setValue(0)
+     .setPosition(225,525)
+     .setSize(200, 50);
+     
+  cp5.addButton("Right Leg")
+     .setValue(0)
+     .setPosition(225,595)
+     .setSize(200, 50);
+     
+     cp5.addButton("Left Leg")
+     .setValue(0)
+     .setPosition(225,665)
+     .setSize(200, 50);
   
   
   //Initialise context
@@ -60,7 +79,7 @@ void setup(){
 }
 
 void draw(){
-  //background(0);
+    background(background);
  
   //Gets new data from Kinect
   context.update();
