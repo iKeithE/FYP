@@ -10,6 +10,8 @@ import org.openkinect.processing.*;
 import org.openkinect.*;
 
 ControlP5 cp5;
+ControlWindow controlWindow;
+
 SimpleOpenNI  context;
 PImage img;
 Kinect kinect;
@@ -19,11 +21,31 @@ float deg = 10;
 
 void setup(){
   //Set window size
-  size(640, 480);
+  size(1000, 800);
+  
   cp5 = new ControlP5(this);
+  
+  //Create button to pick an image for the head
+  cp5.addButton("Head")
+     .setValue(0)
+     .setPosition(0,525)
+     .setSize(200, 50);
+     
+  cp5.addButton("Right Arm")
+     .setValue(0)
+     .setPosition(0,595)
+     .setSize(200, 50);
+  
+  cp5.addButton("Left Arm")
+     .setValue(0)
+     .setPosition(0,665)
+     .setSize(200, 50);
+  
+  
+  
   //Initialise context
   context = new SimpleOpenNI(this);
-  //Get data from Kinect debth sensor
+  //Get data from Kinect depth sensor
   context.enableDepth();
 
   //Start getting user data
@@ -32,12 +54,13 @@ void setup(){
   //Mirror the image from the Kinect to the screen
   context.setMirror(true);
   
+  //Set the size of the Kinect input box
   img=createImage(640,480,RGB);
   img.loadPixels();
 }
 
 void draw(){
-  background(0);
+  //background(0);
  
   //Gets new data from Kinect
   context.update();
@@ -62,9 +85,8 @@ void draw(){
   }
   img.updatePixels();
  
-  //draws the depth map data as an image to the screen 
-  //at position 0(left),0(top) corner
-  image(img,0,0);
+  //Draw the Kinect input to the centre of the window
+  image(img,180,0);
  
   //draw significant points of users
  
