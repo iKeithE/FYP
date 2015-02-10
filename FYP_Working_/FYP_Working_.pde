@@ -32,7 +32,6 @@ void setup(){
   
   //Load background image
   background = loadImage("data/background.jpg");
-  ball = loadImage("data/ball.png");
   
   cp5 = new ControlP5(this);
   
@@ -78,11 +77,18 @@ void draw(){
       if(drawSkel)
       {
         drawSkeleton(i);  // draw the skeleton
-      }
+      }//End if drawSken enabled
       
-    }
-  }
-}
+      
+      // get 3D position of a joint
+      PVector jointPos = new PVector();
+      context.getJointPositionSkeleton(i,SimpleOpenNI.SKEL_LEFT_HAND,jointPos);
+      //ellipse(jointPos.x, jointPos.y, 55, 55);
+      
+      
+    }//End if skeleton is being tracked
+  }//End checking for 3 users
+}//End Draw Method
 
 // draw the skeleton with the selected joints
 void drawSkeleton(int userId)
