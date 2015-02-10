@@ -2,7 +2,7 @@
 //D11124850
 //DT228/4
 //Final Year Project - Mapping and RealTime Projection
-
+import processing.opengl.*;
 import controlP5.*;
 import javax.swing.JFrame;
 import SimpleOpenNI.*;
@@ -21,6 +21,11 @@ PImage ball;
 //Start camera at 10 degrees
 float deg = 10;
 
+//Variable
+boolean drawSkel = false;
+
+
+
 void setup(){
   //Set window size
   size(1000, 800);
@@ -32,36 +37,11 @@ void setup(){
   cp5 = new ControlP5(this);
   
   //Create button to pick an image for the head
-  cp5.addButton("Head")
+  cp5.addButton("Enable/ Disable Skeleton")
      .setValue(0)
      .setPosition(0,525)
-     .setSize(200, 50);
-     
-  cp5.addButton("Right Arm")
-     .setValue(0)
-     .setPosition(0,595)
-     .setSize(200, 50);
-  
-  cp5.addButton("Left Arm")
-     .setValue(0)
-     .setPosition(0,665)
-     .setSize(200, 50);
-     
-  cp5.addButton("Torso")
-     .setValue(0)
-     .setPosition(225,525)
-     .setSize(200, 50);
-     
-  cp5.addButton("Right Leg")
-     .setValue(0)
-     .setPosition(225,595)
-     .setSize(200, 50);
-     
-     cp5.addButton("Left Leg")
-     .setValue(0)
-     .setPosition(225,665)
-     .setSize(200, 50);
-  
+     .setSize(200, 50)
+     .activateBy(ControlP5.PRESSED);
   
   //Initialise context
   context = new SimpleOpenNI(this);
@@ -82,88 +62,53 @@ void setup(){
 void draw(){
     background(background);
  
-  //Gets new data from Kinect
+  //Update data from Kinect camera
   context.update();
  
-  //Get debth image from Kinect
-  PImage depthImage=context.depthImage();
-  depthImage.loadPixels();
+  // draw depth image
+  image(context.depthImage(),0,0); 
  
-  //get user pixels - array of the same size as depthImage.pixels, that gives information about the users in the depth image:
-  int[] upix=context.userMap();
- 
-  //Colour users
-  for(int i=0; i < upix.length; i++){
-    if(upix[i] > 0){
-      //there is a user on that position
-      //NOTE: if you need to distinguish between users, check the value of the upix[i]
-      img.pixels[i]=color(0,255,0);
-    }else{
-      //add depth data to the image
-     img.pixels[i]=depthImage.pixels[i];
-    }
-  }
-  img.updatePixels();
- 
-  //Draw the Kinect input to the centre of the window
-  image(img,0,0);
- 
-  //draw significant points of users
- 
-  //get array of IDs of all users present 
-  int[] users=context.getUsers();
- 
-  ellipseMode(CENTER);
- 
-  //iterate through users
-  for(int i=0; i < users.length; i++){
-    int uid=users[i];
-    
-    //draw center of mass of the user (simple mean across position of all user pixels that corresponds to the given user)
-    PVector realCoM=new PVector();
-    
-    //get the CoM in realworld (3D) coordinates
-    context.getCoM(uid,realCoM);
-    PVector projCoM=new PVector();
-    
-    //convert realworld coordinates to projective (those that we can use to draw to our canvas)
-    context.convertRealWorldToProjective(realCoM, projCoM);
-    fill(255,0,0);
-    ellipse(projCoM.x,projCoM.y,10,10);
- 
-    //check if user has a skeleton
-    if(context.isTrackingSkeleton(uid)){
-      //draw head
-      PVector realHead=new PVector();
+  // for all users from 1 to 3
+  int i;
+  for (i=1; i<=3; i++)
+  {
+    // check if the skeleton is being tracked
+    if(context.isTrackingSkeleton(i))
+    {
+      if(drawSkel)
+      {
+        drawSkeleton(i);  // draw the skeleton
+      }
       
-      //get realworld coordinates of the given joint of the user (in this case Head -> SimpleOpenNI.SKEL_HEAD)
-              context.getJointPositionSkeleton(uid,SimpleOpenNI.SKEL_HEAD,realHead);
-      PVector projHead=new PVector();
-      context.convertRealWorldToProjective(realHead, projHead);
-      fill(0,255,0);
-      ellipse(projHead.x,projHead.y,10,10);
- 
-      //draw dot on left hand
-      PVector realLHand=new PVector();
-      context.getJointPositionSkeleton(uid,SimpleOpenNI.SKEL_LEFT_HAND,realLHand);
-      PVector projLHand=new PVector();
-      context.convertRealWorldToProjective(realLHand, projLHand);
-      fill(255,255,0);
-      ellipse(projLHand.x,projLHand.y,10,10);
-      
-      //draw dot on right hand
-      PVector realRHand=new PVector();
-      context.getJointPositionSkeleton(uid,SimpleOpenNI.SKEL_RIGHT_HAND,realRHand);
-      PVector projRHand=new PVector();
-      context.convertRealWorldToProjective(realRHand, projRHand);
-      //fill(255,255,0);
-      //ellipse(projRHand.x,projRHand.y,10,10);
-      
-      //Draw to hand location
-      image(ball, projRHand.x-25, projRHand.y-25);
     }
   }
 }
+
+// draw the skeleton with the selected joints
+void drawSkeleton(int userId)
+{  
+  context.drawLimb(userId, SimpleOpenNI.SKEL_HEAD, SimpleOpenNI.SKEL_NECK);
+ 
+  context.drawLimb(userId, SimpleOpenNI.SKEL_NECK, SimpleOpenNI.SKEL_LEFT_SHOULDER);
+  context.drawLimb(userId, SimpleOpenNI.SKEL_LEFT_SHOULDER, SimpleOpenNI.SKEL_LEFT_ELBOW);
+  context.drawLimb(userId, SimpleOpenNI.SKEL_LEFT_ELBOW, SimpleOpenNI.SKEL_LEFT_HAND);
+ 
+  context.drawLimb(userId, SimpleOpenNI.SKEL_NECK, SimpleOpenNI.SKEL_RIGHT_SHOULDER);
+  context.drawLimb(userId, SimpleOpenNI.SKEL_RIGHT_SHOULDER, SimpleOpenNI.SKEL_RIGHT_ELBOW);
+  context.drawLimb(userId, SimpleOpenNI.SKEL_RIGHT_ELBOW, SimpleOpenNI.SKEL_RIGHT_HAND);
+ 
+  context.drawLimb(userId, SimpleOpenNI.SKEL_LEFT_SHOULDER, SimpleOpenNI.SKEL_TORSO);
+  context.drawLimb(userId, SimpleOpenNI.SKEL_RIGHT_SHOULDER, SimpleOpenNI.SKEL_TORSO);
+ 
+  context.drawLimb(userId, SimpleOpenNI.SKEL_TORSO, SimpleOpenNI.SKEL_LEFT_HIP);
+  context.drawLimb(userId, SimpleOpenNI.SKEL_LEFT_HIP, SimpleOpenNI.SKEL_LEFT_KNEE);
+  context.drawLimb(userId, SimpleOpenNI.SKEL_LEFT_KNEE, SimpleOpenNI.SKEL_LEFT_FOOT);
+ 
+  context.drawLimb(userId, SimpleOpenNI.SKEL_TORSO, SimpleOpenNI.SKEL_RIGHT_HIP);
+  context.drawLimb(userId, SimpleOpenNI.SKEL_RIGHT_HIP, SimpleOpenNI.SKEL_RIGHT_KNEE);
+  context.drawLimb(userId, SimpleOpenNI.SKEL_RIGHT_KNEE, SimpleOpenNI.SKEL_RIGHT_FOOT);  
+}
+
 
 //is called everytime a new user appears
 void onNewUser(SimpleOpenNI curContext, int userId)
@@ -181,3 +126,18 @@ void onLostUser(SimpleOpenNI curContext, int userId)
   println("onLostUser - userId: " + userId);
  
 }
+
+//If GUI buttons are pressed
+public void controlEvent(ControlEvent theEvent) {
+  
+  if(theEvent.getController().getName() == "Right Leg")
+  {
+    if(drawSkel == false)
+    {
+      drawSkel = true;
+    } else drawSkel = false;
+    
+    print("Skeleton Drawing changed");
+  }//End if Right Leg Button
+  
+}//End If GUI buttons are pressed
