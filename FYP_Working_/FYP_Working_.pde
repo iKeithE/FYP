@@ -130,14 +130,18 @@ void onLostUser(SimpleOpenNI curContext, int userId)
 //If GUI buttons are pressed
 public void controlEvent(ControlEvent theEvent) {
   
-  if(theEvent.getController().getName() == "Right Leg")
+  if(theEvent.getController().getName() == "Enable/ Disable Skeleton")
   {
     if(drawSkel == false)
     {
       drawSkel = true;
-    } else drawSkel = false;
+      print("Skeleton Drawing enabled\n");
+    } else{
+      drawSkel = false;
+      print("Skeleton Drawing disabled\n");
+    }
     
-    print("Skeleton Drawing changed");
+    
   }//End if Right Leg Button
   
 }//End If GUI buttons are pressed
