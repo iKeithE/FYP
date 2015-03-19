@@ -1,248 +1,344 @@
-//Keith Eyre
-//D11124850
-//DT228/4
-//Final Year Project - Mapping and RealTime Projection
-import processing.opengl.*;
-import controlP5.*;
-import javax.swing.JFrame;
-import SimpleOpenNI.*;
+/*---------------------------------------------------------------------------------------------------------------------*/
+/*---------------------------------------------------------------------------------------------------------------------*/
+/*                                                          Keith  Eyre                                  DIT Kevin St. */
+/*                                                           D11124850                             DT228/4 - 2014-2015 */
+/*                                                 Real-Time Mapping & Projection                                      */
+/*                                                      Final Year Project                                             */
+/*---------------------------------------------------------------------------------------------------------------------*/
+/*---------------------------------------------------------------------------------------------------------------------*/
+
+
+/*---------------------------------------------------------------------------------------------------------------------*/
+/*                                                         Imports                                                     */
+/*---------------------------------------------------------------------------------------------------------------------*/
+
+import processing.opengl.*;                //OPEN_GL
+import controlP5.*;                        // ControlP5 - GUI Interface Builder
+import SimpleOpenNI.*;                     //SimpleOpenNI - Kinect library
 import org.openkinect.processing.*;
 import org.openkinect.*;
-import processing.opengl.*;
 
+/*---------------------------------------------------------------------------------------------------------------------*/
+/*                                                       Global Variables                                              */
+/*---------------------------------------------------------------------------------------------------------------------*/
+
+//Initialise ControlP5 for GUI interface
 ControlP5 cp5;
+
 ControlWindow controlWindow;
 
-SimpleOpenNI  context;
-PImage img;
-Kinect kinect;
+//Initialise Kinect
+SimpleOpenNI  kinect;
 
-public PImage background;
-PImage ball;
+//Floats
+float zoom = 1.5f;
+float rotX = radians(180);
+float rotY = radians(0);
 
-PMatrix3D  orientation = new PMatrix3D();//create a new matrix to store the steadiest orientation (used in rendering)
-PMatrix3D  newOrientaton = new PMatrix3D();//create a new matrix to store the newest rotations/orientation (used in getting data from the sensor)
+//PVectors
+PVector centerOfMass = new PVector();
+PVector userCenterOfBody = new PVector();
+PVector userDirection = new PVector();
 
-public PVector jointPos = new PVector();
-
-public PShape IronMan;
-
-public PVector jointPos_LeftHand = new PVector();
-
-//Start camera at 10 degrees
-float deg = 10;
-
-//Variable
-boolean drawSkel = false;
-boolean drawBot = false;
-
-public float rot = 0;
+//Instansiate GUI ineer class
+GUI gui = new GUI();
 
 
 
-void setup(){
+/*---------------------------------------------------------------------------------------------------------------------*/
+/*                                                       Setup Method                                                  */
+/*---------------------------------------------------------------------------------------------------------------------*/
+
+void setup() {
   //Set window size
-  size(1000, 800, P3D);
-  
-  //Load background image
-  background = loadImage("data/background.jpg");
-  // The file "bot.obj" must be in the data folder
-  // of the current sketch to load successfully
-  IronMan = loadShape("Ironman.obj");
-  
-  
-  
+  size(1024, 780, P3D);
+
   cp5 = new ControlP5(this);
-  
-  //Create button to pick an image for the head
-  cp5.addButton("Enable/ Disable Skeleton")
-     .setValue(0)
-     .setPosition(0,525)
-     .setSize(200, 50)
-     .activateBy(ControlP5.PRESSED);
-     
-    cp5.addButton("Draw 3D Robot")
-      .setValue(0)
-      .setPosition(0, 570)
-      .setSize(200, 50)
-      .activateBy(ControlP5.PRESSED);
-  
-  //Initialise context
-  context = new SimpleOpenNI(this);
+
+
+  cp5.addButton("colorA")
+    .setValue(0)
+      .setPosition(100, 100)
+        .setSize(200, 50)
+          ;
+
+  //Initialise kinect
+  kinect = new SimpleOpenNI(this);
+
+  //Check if SimpleOpenNI is initialise
+  if (kinect.isInit() == false)
+  {
+    println("Failed to initialise SimpleOpenNI, check Kinect is connected!"); 
+    exit();
+    return;
+  }
+
   //Get data from Kinect depth sensor
-  context.enableDepth();
+  kinect.enableDepth();
 
   //Start getting user data
-  context.enableUser();
-  
-  //Mirror the image from the Kinect to the screen
-  context.setMirror(true);
-  
-  //Set the size of the Kinect input box
-  img=createImage(640,480,RGB);
-  img.loadPixels();
+  kinect.enableUser();
+
+  //Disable mirror image from the Kinect to the screen
+  kinect.setMirror(true);
+
+  //Enable smoothening
+  smooth();
+
+  /*---------------------------------------------------------------------------------------------------------------------*/
 }
 
-void draw(){
-    background(background);
- 
-  //Update data from Kinect camera
-  context.update();
- 
-  // draw depth image
-  image(context.depthImage(),0,0); 
- 
-  // for all users from 1 to 3
-  int i;
-  for (i=1; i<=3; i++)
-  {
-    // check if the skeleton is being tracked
-    
-    
-    if(context.isTrackingSkeleton(i))
-    {
-      if(drawSkel)
-      {
-        drawSkeleton(i);  // draw the skeleton
-      }//End if drawSken enabled
-      
-      //TESTING
-      
-      newOrientaton.reset();//reset the raw sensor orientation 
-      float confidence = context.getJointOrientationSkeleton(i,SimpleOpenNI.SKEL_HEAD,newOrientaton);//retrieve the head orientation from OpenNI
-      if(confidence > 0.001){//if the new orientation is steady enough (and play with the 0.001 value to see what works best)
-        orientation.reset();//reset the matrix and get the new values
-        orientation.apply(newOrientaton);//copy the steady orientation to the matrix we use to render the avatar
-      }
-      //draw a box using the head's orientation
-      translate(jointPos.x, jointPos.y);
-      pushMatrix();
-      applyMatrix(orientation);//rotate box based on head orientation
-      box(40);
-      
-      
-      popMatrix();  
-        
-        //TESTING END
-        
-      // get 3D position of a joint
-      context.getJointPositionSkeleton(i,SimpleOpenNI.SKEL_HEAD,jointPos);
-      
-      
-      
-    }//End if skeleton is being tracked
-  }//End checking for 3 users
-  
-  if(drawBot)
-  {
-    drawRobot();
-  }
-  
-//  if(keyPressed && key == ' ') {
-//    IronMan.scale(1.1);
-//    IronMan.rotateZ(0.1);
-//  }
+/*---------------------------------------------------------------------------------------------------------------------*/
+/*                                                        Draw Method                                                  */
+/*---------------------------------------------------------------------------------------------------------------------*/
 
-  
-  //shape(IronMan, 700, 100);
-  
+void draw() {
+
+
+  //Update data from Kinect
+  kinect.update();
+
+  //Set Background
+  background(0, 0, 0);
+
+  //Do inner class calls here (after backgroud for GUI stuff) 
+
+
+
+  //Position screen in window
+  translate(width/2, height/2, 0);
+
+
+  // rotateX(rotX); //To fix the invert from OpenNI.... seems reasonable
+  //rotateY(rotY);
+
+  //Scale image to screen
+  scale(zoom);
+
+  //Setup Mapping
+  int[] userMap = kinect.userMap();
+  int[] depthMap = kinect.depthMap();
+
+  //Draw Skeleton on screen if available
+  int[] users = kinect.getUsers(); //Get how many users from Kinect
+
+  //Move back on the Z-axis so you can see everything
+  translate(0, 0, -1000);
+
+
+  //Draw skeletons for users on screen
+  for (int i=0; i < users.length; i++)
+  {
+    if (kinect.isTrackingSkeleton(users[i]))
+      drawSkeleton(users[i]);
+
+    // Get and display the center of mass for each user with 3D crosshair shape
+    if (kinect.getCoM(users[i], centerOfMass))
+    {
+      stroke(0, 255, 0);
+      strokeWeight(3);
+      beginShape(LINES);
+      vertex(centerOfMass.x - 15, centerOfMass.y, centerOfMass.z);
+      vertex(centerOfMass.x + 15, centerOfMass.y, centerOfMass.z);
+
+      vertex(centerOfMass.x, centerOfMass.y - 15, centerOfMass.z);
+      vertex(centerOfMass.x, centerOfMass.y + 15, centerOfMass.z);
+
+      vertex(centerOfMass.x, centerOfMass.y, centerOfMass.z - 15);
+      vertex(centerOfMass.x, centerOfMass.y, centerOfMass.z + 15);
+      endShape();
+
+      fill(0, 0, 0);
+      text(Integer.toString(users[i]), centerOfMass.x, centerOfMass.y, centerOfMass.z);
+    }//End if
+  }//End for
 }//End Draw Method
 
-// draw the skeleton with the selected joints
+
+/*---------------------------------------------------------------------------------------------------------------------*/
+/*                                                  Draw Skeletons Joints                                              */
+/*---------------------------------------------------------------------------------------------------------------------*/
+
 void drawSkeleton(int userId)
-{  
-  context.drawLimb(userId, SimpleOpenNI.SKEL_HEAD, SimpleOpenNI.SKEL_NECK);
- 
-  context.drawLimb(userId, SimpleOpenNI.SKEL_NECK, SimpleOpenNI.SKEL_LEFT_SHOULDER);
-  context.drawLimb(userId, SimpleOpenNI.SKEL_LEFT_SHOULDER, SimpleOpenNI.SKEL_LEFT_ELBOW);
-  context.drawLimb(userId, SimpleOpenNI.SKEL_LEFT_ELBOW, SimpleOpenNI.SKEL_LEFT_HAND);
- 
-  context.drawLimb(userId, SimpleOpenNI.SKEL_NECK, SimpleOpenNI.SKEL_RIGHT_SHOULDER);
-  context.drawLimb(userId, SimpleOpenNI.SKEL_RIGHT_SHOULDER, SimpleOpenNI.SKEL_RIGHT_ELBOW);
-  context.drawLimb(userId, SimpleOpenNI.SKEL_RIGHT_ELBOW, SimpleOpenNI.SKEL_RIGHT_HAND);
- 
-  context.drawLimb(userId, SimpleOpenNI.SKEL_LEFT_SHOULDER, SimpleOpenNI.SKEL_TORSO);
-  context.drawLimb(userId, SimpleOpenNI.SKEL_RIGHT_SHOULDER, SimpleOpenNI.SKEL_TORSO);
-  context.drawLimb(userId, SimpleOpenNI.SKEL_TORSO, SimpleOpenNI.SKEL_LEFT_HIP);
-  context.drawLimb(userId, SimpleOpenNI.SKEL_LEFT_HIP, SimpleOpenNI.SKEL_LEFT_KNEE);
-  context.drawLimb(userId, SimpleOpenNI.SKEL_LEFT_KNEE, SimpleOpenNI.SKEL_LEFT_FOOT);
- 
-  context.drawLimb(userId, SimpleOpenNI.SKEL_TORSO, SimpleOpenNI.SKEL_RIGHT_HIP);
-  context.drawLimb(userId, SimpleOpenNI.SKEL_RIGHT_HIP, SimpleOpenNI.SKEL_RIGHT_KNEE);
-  context.drawLimb(userId, SimpleOpenNI.SKEL_RIGHT_KNEE, SimpleOpenNI.SKEL_RIGHT_FOOT);
-  
-  //Get 3D position of a body part
-  context.getJointPositionSkeleton(userId,SimpleOpenNI.SKEL_LEFT_HAND,jointPos_LeftHand);
-  println("X: " + jointPos_LeftHand.x);
-  println("Y: " + jointPos_LeftHand.y);
-  println("Z: " + jointPos_LeftHand.z);
+{
+  pushMatrix();
+  rotateX(rotX); //To fix the invert from OpenNI.... seems reasonable
+  rotateY(rotY);
+
+  scale(zoom);
+
+  //Draw the skeleton with lines from joint to joint
+  strokeWeight(3);
+
+  drawLimb(userId, SimpleOpenNI.SKEL_HEAD, SimpleOpenNI.SKEL_NECK);
+
+  drawLimb(userId, SimpleOpenNI.SKEL_NECK, SimpleOpenNI.SKEL_LEFT_SHOULDER);
+  drawLimb(userId, SimpleOpenNI.SKEL_LEFT_SHOULDER, SimpleOpenNI.SKEL_LEFT_ELBOW);
+  drawLimb(userId, SimpleOpenNI.SKEL_LEFT_ELBOW, SimpleOpenNI.SKEL_LEFT_HAND);
+
+  drawLimb(userId, SimpleOpenNI.SKEL_NECK, SimpleOpenNI.SKEL_RIGHT_SHOULDER);
+  drawLimb(userId, SimpleOpenNI.SKEL_RIGHT_SHOULDER, SimpleOpenNI.SKEL_RIGHT_ELBOW);
+  drawLimb(userId, SimpleOpenNI.SKEL_RIGHT_ELBOW, SimpleOpenNI.SKEL_RIGHT_HAND);
+
+  drawLimb(userId, SimpleOpenNI.SKEL_LEFT_SHOULDER, SimpleOpenNI.SKEL_TORSO);
+  drawLimb(userId, SimpleOpenNI.SKEL_RIGHT_SHOULDER, SimpleOpenNI.SKEL_TORSO);
+
+  drawLimb(userId, SimpleOpenNI.SKEL_TORSO, SimpleOpenNI.SKEL_LEFT_HIP);
+  drawLimb(userId, SimpleOpenNI.SKEL_LEFT_HIP, SimpleOpenNI.SKEL_LEFT_KNEE);
+  drawLimb(userId, SimpleOpenNI.SKEL_LEFT_KNEE, SimpleOpenNI.SKEL_LEFT_FOOT);
+
+  drawLimb(userId, SimpleOpenNI.SKEL_TORSO, SimpleOpenNI.SKEL_RIGHT_HIP);
+  drawLimb(userId, SimpleOpenNI.SKEL_RIGHT_HIP, SimpleOpenNI.SKEL_RIGHT_KNEE);
+  drawLimb(userId, SimpleOpenNI.SKEL_RIGHT_KNEE, SimpleOpenNI.SKEL_RIGHT_FOOT);
+
+  //Display the direction the user is pointing
+  getUserDirection(userId, userDirection, userCenterOfBody);
+
+  userDirection.mult(150);  // 150mm length
+  userDirection.add(userCenterOfBody);
+
+  stroke(255, 200, 200);
+  line(userCenterOfBody.x, userCenterOfBody.y, userCenterOfBody.z, userDirection.x, userDirection.y, userDirection.z);
+
+  strokeWeight(1);
+  popMatrix();
 }
 
 
-//is called everytime a new user appears
+/*---------------------------------------------------------------------------------------------------------------------*/
+/*                                                  Get Direction of User                                              */
+/*---------------------------------------------------------------------------------------------------------------------*/
+
+void getUserDirection(int userId, PVector direction, PVector center)
+{
+  //PVectors for HEAD and LEFT & RIGHT shoulders
+  PVector joint_HEAD = new PVector();
+  PVector joint_LEFT = new PVector();
+  PVector joint_RIGHT = new PVector();
+
+  float confidence;
+
+  confidence = kinect.getJointPositionSkeleton(userId, SimpleOpenNI.SKEL_HEAD, joint_HEAD);
+  confidence = kinect.getJointPositionSkeleton(userId, SimpleOpenNI.SKEL_LEFT_SHOULDER, joint_LEFT);
+  confidence = kinect.getJointPositionSkeleton(userId, SimpleOpenNI.SKEL_RIGHT_SHOULDER, joint_RIGHT);
+
+  //Use the neck as the center point of the users body
+  confidence = kinect.getJointPositionSkeleton(userId, SimpleOpenNI.SKEL_NECK, center);
+
+  PVector up = PVector.sub(joint_HEAD, center);
+  PVector left = PVector.sub(joint_RIGHT, center);
+
+  direction.set(up.cross(left));
+  direction.normalize();
+}
+
+/*---------------------------------------------------------------------------------------------------------------------*/
+/*                                                     Draw User Limbs                                                 */
+/*---------------------------------------------------------------------------------------------------------------------*/
+
+void drawLimb(int userId, int j1, int j2)
+{
+  //Draw lines from j1 to j2
+  PVector jointPos1 = new PVector();
+  PVector jointPos2 = new PVector();
+
+  float  confidence;
+
+  //Get joint position fron Kinect
+  confidence = kinect.getJointPositionSkeleton(userId, j1, jointPos1);
+  confidence = kinect.getJointPositionSkeleton(userId, j2, jointPos2);
+
+  stroke(255, 255, 255, confidence * 200 + 55);
+
+  //Draw from joints at position 1 to 2 for skeleton
+  line(jointPos1.x, jointPos1.y, jointPos1.z, jointPos2.x, jointPos2.y, jointPos2.z);
+
+  //Draw the X, Y and Z axis for each of the joints
+  drawJointOrientation(userId, j1, jointPos1, 50);
+}
+
+/*---------------------------------------------------------------------------------------------------------------------*/
+/*                                                  Draw Joint Orientations                                            */
+/*---------------------------------------------------------------------------------------------------------------------*/
+
+void drawJointOrientation(int userId, int jointType, PVector jointPosition, float length)
+{  
+  PMatrix3D  orientation = new PMatrix3D();
+
+  float confidence = kinect.getJointOrientationSkeleton(userId, jointType, orientation);
+
+  if (confidence < 0.001f)
+    //Do nothing
+    return;
+
+  //Push position onto the stack
+  pushMatrix();
+
+  //Move current position to where the joint is
+  translate(jointPosition.x, jointPosition.y, jointPosition.z);
+
+  //Apply the orientation matrix
+  applyMatrix(orientation);
+
+  //Draw orientation lines: X = RED, Y = GREEN, Z = BLUE
+  //      R   G  B          opacity
+
+  //X axis
+  stroke(255, 0, 0, confidence * 200 + 55);
+  line(0, 0, 0, length, 0, 0);
+  // y - g
+  stroke(0, 255, 0, confidence * 200 + 55);
+  line(0, 0, 0, 0, length, 0);
+  stroke(0, 0, 255, confidence * 200 + 55);
+  line(0, 0, 0, 0, 0, length);
+
+  popMatrix();
+}
+
+/*---------------------------------------------------------------------------------------------------------------------*/
+/*                                                     Add Buttons                                                     */
+/*---------------------------------------------------------------------------------------------------------------------*/
+
+void addButton()
+{
+  //Add button for Skel tracking here
+
+  //Add button for Orientation tracking here
+
+  //Add button for costume super imposing here
+}
+
+/*---------------------------------------------------------------------------------------------------------------------*/
+/*                                                     Extra Methods                                                   */
+/*---------------------------------------------------------------------------------------------------------------------*/
+
+// SimpleOpenNI user events
+
 void onNewUser(SimpleOpenNI curContext, int userId)
 {
   println("onNewUser - userId: " + userId);
-  //asks OpenNI to start tracking a skeleton data for this user
-  //NOTE: you cannot request more than 2 skeletons at the same time due to the perfomance limitation
-  //      so some user logic is necessary (e.g. only the closest user will have a skeleton)
-  curContext.startTrackingSkeleton(userId);
+  println("\tstart tracking skeleton");
+
+  kinect.startTrackingSkeleton(userId);
 }
 
-//is called everytime a user disappears
 void onLostUser(SimpleOpenNI curContext, int userId)
 {
   println("onLostUser - userId: " + userId);
- 
 }
 
-//If GUI buttons are pressed
-public void controlEvent(ControlEvent theEvent) {
-  
-  if(theEvent.getController().getName() == "Enable/ Disable Skeleton")
-  {
-    if(drawSkel == false)
-    {
-      drawSkel = true; print("Skeleton Drawing enabled\n");
-    } else {drawSkel = false; print("Skeleton Drawing disabled\n");}
-  }//End if Skeleton button pressed
-  
-  
-  if(theEvent.getController().getName() == "Draw 3D Robot")
-  {
-    if(drawBot == false)
-    {
-      drawBot = true; print("Robot Enabled\n");
-    } else {drawBot = false; print("Robot Disabled\n");}
-  }
-}//End If GUI buttons are pressed
-
-public void drawRobot()
+void onVisibleUser(SimpleOpenNI curContext, int userId)
 {
-  pushMatrix();
-  translate(width - 100, (height/2)-100);
-  //Head
-  rotateY(rot);
-  box(40);
-  
-  translate(0,80,0);
-  scale(0.8,1);
-  //Body
-  box(80);
-  translate(70,0,0);
-  scale(1,2);
-  //Arm
-  box(30);
-  translate(-140,0,0);
-  //Arm
-  box(30);
-  translate(50,50,0);
-  scale(1,1.5);
-  //Leg
-  box(30);
-  translate(40,0,0);
-  //Leg
-  box(30);
-  rotate(45);
-  popMatrix();
-}//End draw head
+  //println("onVisibleUser - userId: " + userId);
+}
+
+
+
+void toggle(boolean theFlag) {
+  if (theFlag==true) {
+    println("a toggle event. TRUE");
+  } else {
+    println("a toggle event.FALSE");
+  }
+}
+
