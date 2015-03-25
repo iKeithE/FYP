@@ -1,28 +1,21 @@
-class Test
+import controlP5.*;                        //ControlP5 - GUI Interface Builder
+
+class GUI
 {
-  float x, y;
 
-  //Constructor
-  Test()
-  {
-    x = 100;
-    y = 100;
-  }
-
-
-
+  //Contructor
   void GUI()
   {
+
+  }//End constructor
+
+  void display()
+  {
     pushMatrix();
-    translate(x, y);
-    rotate(theta);
-    theta += 0.1f;
-    x += 1;
-    y += 1;
-    stroke(255);
-    fill(255);
-    rect(-25, -25, 50, 50);
+    translate(1024-300, 0);
+
+//    print("Got here");
     popMatrix();
-  }
-}
+  }//End display
+}//End class
 
