@@ -1,0 +1,39 @@
+*******************************************************************************
+*						   													  *
+*							Keith Eyre - BSc Computer Science				  *
+*					    													  *
+*		                    Mapping And Real-Time Projection				  *
+*					   			  DT228/4 - D11124850					 	  *
+*					   			 										 	  *
+*******************************************************************************
+
+
+Hardware Required:
+	• MacBook Pro
+	• x1 USB port
+	• 1 Power Supply
+
+	• XBox Kinect V1.0 or V2.0 (tested with V1.0)
+	• Kinect Power Supply
+
+Software Required:
+	• Processing 2.0 (or latest build)
+	• SimpleOpenNI library for Processing 2.0
+
+
+Steps:
+
+1). Connect XBox Kinect v1.0 or V2.0 to computer
+2). Open FYP.pde file within Processing 2.0
+3). Click "Run" from the Processing Toolbar
+
+4). Stand in front of Kinect (system will carry on without user input)
+
+
+Thanks, and enjoy.
+
+Keith Eyre
+D11124850
+DT228/4 
+BSc Computer Science (2011 - 2015)
+Dublin Institute of Technology - Kevin Street
